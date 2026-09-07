@@ -39,14 +39,14 @@ func (p *Parser) parse() (any, error){
 	case 'i':
 		return p.parseInteger()
 
-	//case 'l':
-		//return parseList()
+	case 'l':
+		return p.parseList()
 	
-	//case 'd':
-		//return parseDictionary()
+	case 'd':
+		return p.parseDictionary()
 
-	//case '0','1','2','3','4','5','6','7','8','9':
-		//return parseString()
+	case '0','1','2','3','4','5','6','7','8','9':
+		return p.parseString()
 
 	default:
 		return nil, fmt.Errorf("invalid bencode character : %c",p.data[p.pos])
@@ -83,4 +83,114 @@ func (p *Parser) parseInteger() (int, error){
 	p.pos++
 
 	return num, nil
+}
+
+// string parser
+func (p *Parser) parseString() (string, error){
+	start := p.pos
+
+	// find " : "
+	for p.pos<len(p.data) && p.data[p.pos]!=':'{
+		p.pos++
+	}
+
+	// if not foudn
+	if p.pos>=len(p.data){
+		return "", fmt.Errorf("invalid string length")
+	}
+
+	// find length -> from start to p.pos-1
+	bytesLength := p.data[start:p.pos]
+	length, err := strconv.Atoi(string(bytesLength))
+	if err!=nil{
+		return "",fmt.Errorf("invalid length")
+	}
+
+	// skip ':'
+	p.pos++
+
+	// check bytesLength and data lenght
+	if p.pos+length > len(p.data){
+		return "",fmt.Errorf("error")
+	}
+
+	// extract actual string
+	val := string(p.data[p.pos:p.pos+length])
+
+	// move on
+	p.pos += length
+
+	return val, nil
+}
+
+// list parser
+func (p *Parser) parseList() ([]any, error){
+	// skip 'l'
+	p.pos++
+
+	// list can have anything -> int, string, list, dictionary
+	list := []any{}
+
+	for {
+		// check bounds
+		if p.pos>=len(p.data){
+			return nil, fmt.Errorf("unterminated list")
+		}
+
+		// list ends when 'e'
+		if p.data[p.pos] == 'e'{
+			p.pos++
+			break
+		}
+
+		// parse next element
+		// recursive parsing
+		value, err := p.parse()
+		if err!= nil{
+			return nil, err
+		}
+
+		// add element
+		list = append(list, value)
+	}
+	return list,nil
+}
+
+// dictionary parser
+func (p *Parser) parseDictionary() (map[string]any, error){
+
+	// skip 'd'
+	p.pos++
+
+	dict := make(map[string]any)
+
+	for{
+		// check bounds
+		if p.pos>=len(p.data){
+			return nil, fmt.Errorf("unterminated dictionary")
+		}
+
+		// break condition
+		if p.data[p.pos] == 'e'{
+			p.pos++
+			break
+		}
+
+		// dictonary -> key : value
+		// keys msut be strings
+		key, err := p.parseString()
+		if err!=nil{
+			return nil, err
+		}
+
+		// parse the corresponding value
+		value, err := p.parse()
+		if err!=nil{
+			return nil,err
+		}
+
+		// store
+		dict[key] = value
+	}
+	return dict,nil
 }
