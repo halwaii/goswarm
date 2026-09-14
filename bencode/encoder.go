@@ -29,12 +29,16 @@ func Encode(val any) ([]byte, error) {
 func encodeVal(buf *bytes.Buffer, val any) error {
 	switch v := val.(type){
 
-	case int:
+	case int64:
 		return encodeInteger(buf,v)
 
 	case string:
 		return encodeString(buf, v)
 
+	// new case for binary data
+	case []byte:
+		return encodeByteSlice(buf, v)
+	
 	case []any:
 		return encodeList(buf, v)
 
@@ -47,10 +51,11 @@ func encodeVal(buf *bytes.Buffer, val any) error {
 }
 
 // integer encoding
-func encodeInteger(buf *bytes.Buffer, val int) error{
+func encodeInteger(buf *bytes.Buffer, val int64) error{
 	buf.WriteByte('i')
 	// convert integer to string then convert it into string
-	buf.WriteString(strconv.Itoa(val))
+	// convert int 64 to string base 10
+	buf.WriteString(strconv.FormatInt(val,10))
 	buf.WriteByte('e')
 
 	return nil
@@ -117,6 +122,15 @@ func encodeDictionary(buf *bytes.Buffer, dict map[string]any) error{
 		}
 	}
 	buf.WriteByte('e')
+
+	return nil
+}
+
+// byte slice encoding for raw binary data -> torrent pieces
+func encodeByteSlice(buf *bytes.Buffer, val []byte) error{
+	buf.WriteString(strconv.Itoa(len(val)))
+	buf.WriteByte(':')
+	buf.Write(val) // store raw binary data as it is
 
 	return nil
 }

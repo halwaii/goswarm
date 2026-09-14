@@ -54,7 +54,7 @@ func (p *Parser) parse() (any, error){
 }
 
 // integer parser
-func (p *Parser) parseInteger() (int, error){
+func (p *Parser) parseInteger() (int64, error){
 	// move position
 	p.pos++
 
@@ -76,9 +76,12 @@ func (p *Parser) parseInteger() (int, error){
 
 	// string(numBytes) -> "42"
 	// atoi -> ascii to integer , num = 42
-	num, err := strconv.Atoi(string(numBytes))
+	//num, err := strconv.Atoi(string(numBytes))
+
+	// used parseInt to make num 64-bit
+	num, err := strconv.ParseInt(string(numBytes), 10, 64)
 	if err != nil{
-		return 0, fmt.Errorf("invalid")
+		return 0, fmt.Errorf("invalid integer '%s': %v", string(numBytes), err)
 	}
 	p.pos++
 
