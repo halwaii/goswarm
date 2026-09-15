@@ -51,4 +51,5 @@ func main() {
 	fmt.Println("Piece Length:", t.PieceLength)
 	fmt.Println("Number of Pieces:", len(t.PieceHashes))
 	fmt.Println("Tracker:", t.Announce)
+	fmt.Printf("Info Hash: %x\n", t.InfoHash)
 }

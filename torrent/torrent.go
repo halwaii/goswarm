@@ -1,6 +1,7 @@
 package torrent
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"os"
 
@@ -21,12 +22,14 @@ import (
 // pieces = sha1(piece0) + sha1(piece1) + sha1(piece2) + sha1(piece3)
 // each sha1 is of 20 bytes
 
-type torrentFile struct{
+type TorrentFile struct{
 	Announce string
 	Name string
 	Length int64
 	PieceLength int64
 	PieceHashes [][20]byte // slice of 20 byte arrays
+
+	InfoHash [20]byte // sha1 hash of info dictionary
 }
 
 // torrnet parser => read file -> decode bencode -> extract values -> return torrentFile
@@ -65,6 +68,18 @@ func Open(path string) (*torrentFile, error){
 	if !check{
 		return nil, fmt.Errorf("invalid info dictionary")
 	}
+
+	// 5.5) calculate info hash
+	infoBytes, err := bencode.Encode(info)
+	if err!=nil{
+		return nil, fmt.Errorf("failed to encode info dictionary : %w", err)
+	}
+
+	// extract metadata from info dictionary and calculate sha1 hash of it
+
+	infoHash := sha1.Sum(infoBytes)
+	// sha1 hash of info dictionary is called info hash
+	// info hash is used to identify the torrent file in the tracker
 
 	// 6) get file name
 	name, check := info["name"].(string)
@@ -120,12 +135,14 @@ func Open(path string) (*torrentFile, error){
 	}
 
 	// create our torrent file
-	torrent := &torrentFile{
+	torrent := &TorrentFile{
 		Announce: announce,
 		Name: name,
 		Length: length,
 		PieceLength: PieceLength,
 		PieceHashes: PieceHashes,
+
+		InfoHash: infoHash,
 	}
 
 	return torrent, nil
