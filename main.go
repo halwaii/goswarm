@@ -74,5 +74,16 @@ func main() {
 	}
 	fmt.Println("response lenght : ", len(body))
 	fmt.Println()
-	fmt.Println(string(body))
+	
+	trackerResp, err := tracker.ParseTrackerResponse(body)
+	if err!=nil{
+		log.Fatal(err)
+	}
+
+	fmt.Printf("interval : %d seconds\n", trackerResp.Interval)
+	fmt.Printf("found %d peers\n", len(trackerResp.Peers))
+
+	for i, peer := range trackerResp.Peers{
+		fmt.Printf("peer %d : %s %d\n", i+1, peer.IP.String(), peer.Port)
+	}
 }

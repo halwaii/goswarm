@@ -4,26 +4,19 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 
+	"github.com/halwaii/goswarm/bencode"
+	"github.com/halwaii/goswarm/peers"
 	"github.com/halwaii/goswarm/torrent"
 )
-
-// peer structure
-// peer -> 4 bytes IP + 2 bytes port = 6 bytes
-// to make compact IPv4 peer list
-type Peer struct {
-	IP net.IP // its byte slice []byte
-	Port uint16 // port range is 0-65535, so we can use uint16
-}
 
 // tracerResponse -> interval
 type TrackerResponse struct{
 	Interval int64
-	Peers []Peer
+	Peers []peers.Peer
 }
 
 // main function to send request to tracker
@@ -72,22 +65,56 @@ func GeneratePeerID() ([20]byte, error){
 }
 
 func GetTrackerResponse(trackerURL string) ([]byte, error){
-		// sent http request . resp -> *http.response
-		resp, err := http.Get(trackerURL)
-		if err!=nil{
-			return nil, err
-		}
-		// execute this just before return of funciton
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK{
-			return nil, fmt.Errorf("tracker status : %s", resp.Status)
-		}
-
-		body,err := io.ReadAll(resp.Body)
-		if err!=nil{
-			return nil,err
-		}
-
-		return body, nil
+	// sent http request . resp -> *http.response
+	resp, err := http.Get(trackerURL)
+	if err!=nil{
+		return nil, err
 	}
+	// execute this just before return of funciton
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK{
+		return nil, fmt.Errorf("tracker status : %s", resp.Status)
+	}
+
+	body,err := io.ReadAll(resp.Body)
+	if err!=nil{
+		return nil,err
+	}
+
+	return body, nil
+}
+
+
+func ParseTrackerResponse(data []byte) (TrackerResponse, error){
+	// decode bencode
+	decoded, err := bencode.Decode(data)
+	if err!=nil{
+		return TrackerResponse{}, err
+	}
+
+	dict, check := decoded.(map[string]any)
+	if !check{
+		return TrackerResponse{}, fmt.Errorf("invalid response")
+	}
+
+	interval, check := dict["interval"].(int64)
+	if !check{
+		return TrackerResponse{}, fmt.Errorf("invalid interval")
+	}
+
+	peersStringBytes, check := dict["peers"].(string)
+	if !check{
+		return TrackerResponse{}, fmt.Errorf("invalid peers")
+	}
+
+	peerList,err := peers.UnmarshalPeers([]byte(peersStringBytes))
+	if err!=nil{
+		return TrackerResponse{},err
+	}
+
+	return TrackerResponse{
+		Interval: interval,
+		Peers: peerList,
+	}, nil
+}
