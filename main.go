@@ -60,4 +60,19 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("peer ID : %x\n", peerID)
+	trackerURL, err := tracker.BuildTrackerURL(t, peerID, 6881)
+	if err!=nil{
+		log.Fatal(err)
+	}
+	fmt.Println(trackerURL)
+
+	fmt.Println()
+
+	body, err := tracker.GetTrackerResponse(trackerURL)
+	if err!=nil{
+		log.Fatal(err)
+	}
+	fmt.Println("response lenght : ", len(body))
+	fmt.Println()
+	fmt.Println(string(body))
 }
