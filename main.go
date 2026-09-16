@@ -30,6 +30,7 @@ import (
 	"os"
 
 	"github.com/halwaii/goswarm/torrent"
+	"github.com/halwaii/goswarm/tracker"
 )
 
 func main() {
@@ -52,4 +53,11 @@ func main() {
 	fmt.Println("Number of Pieces:", len(t.PieceHashes))
 	fmt.Println("Tracker:", t.Announce)
 	fmt.Printf("Info Hash: %x\n", t.InfoHash)
+
+	peerID, err := tracker.GeneratePeerID()
+
+	if err!=nil{
+		log.Fatal(err)
+	}
+	fmt.Printf("peer ID : %x\n", peerID)
 }

@@ -35,7 +35,7 @@ type TorrentFile struct{
 // torrnet parser => read file -> decode bencode -> extract values -> return torrentFile
 
 // reads a .torrent file and convert it into torrent metadata
-func Open(path string) (*torrentFile, error){
+func Open(path string) (*TorrentFile, error){
 
 	// 1) read .torrent file
 	data, err := os.ReadFile(path)
