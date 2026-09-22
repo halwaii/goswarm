@@ -27,8 +27,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"time"
 
+	"github.com/halwaii/goswarm/handshake"
 	"github.com/halwaii/goswarm/torrent"
 	"github.com/halwaii/goswarm/tracker"
 )
@@ -84,6 +87,28 @@ func main() {
 	fmt.Printf("found %d peers\n", len(trackerResp.Peers))
 
 	for i, peer := range trackerResp.Peers{
-		fmt.Printf("peer %d : %s %d\n", i+1, peer.IP.String(), peer.Port)
+		//fmt.Printf("peer %d : %s %d\n", i+1, peer.IP.String(), peer.Port)
+
+		peerAdd := fmt.Sprintf("%s:%d", peer.IP.String(), peer.Port)
+		fmt.Printf("(%d) connecting to %s...\n", i+1, peerAdd)
+
+		conn, err := net.DialTimeout("tcp", peerAdd, 5*time.Second)
+		if err!=nil{
+			fmt.Printf("failed to connect : %v\n",err)
+			continue
+		}
+		defer conn.Close()
+
+		fmt.Println("tcp connection established")
+		// read and write
+		conn.SetDeadline(time.Now().Add(5*time.Second))
+
+		hs, err := handshake.PerformHandshake(conn, t.InfoHash, peerID)
+		if err!=nil{
+			fmt.Printf("handshake failed : %v\n", err)
+			continue
+		}
+
+		fmt.Printf("BitTorrent handshake sucessful. Peer ID : %s\n", string(hs.PeerID[:]))
 	}
 }
