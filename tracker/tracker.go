@@ -42,6 +42,7 @@ func BuildTrackerURL(t *torrent.TorrentFile,peerID [20]byte, port uint16) (strin
 		"downloaded": []string{"0"},
 		"compact": []string{"1"},
 		"left":[]string{strconv.FormatInt(t.Length,10)},
+		"numwant":[]string{"50"},
 	}
 	// encode url
 	base.RawQuery = params.Encode()
