@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/halwaii/goswarm/handshake"
+	"github.com/halwaii/goswarm/message"
 	"github.com/halwaii/goswarm/torrent"
 	"github.com/halwaii/goswarm/tracker"
 )
@@ -110,5 +111,31 @@ func main() {
 		}
 
 		fmt.Printf("BitTorrent handshake sucessful. Peer ID : %s\n", string(hs.PeerID[:]))
+
+		// sending interested message
+		interestedMsg := &message.Message{ID: message.MsgInterested}
+		_,err = conn.Write(message.Serialize(interestedMsg))
+		if err !=nil{
+			fmt.Printf("failed to send intereseted message : %v\n", err)
+			continue
+		}
+		fmt.Println("interested message send")
+
+		// new deadline to read message
+		conn.SetDeadline(time.Now().Add(10*time.Second))
+		fmt.Println("waiting for message from peer")
+		for {
+		msg, err := message.ReadMessage(conn)
+		if err!=nil{
+			fmt.Printf("failed to read message : %v\n", err)
+			break
+		}
+		fmt.Printf("received : %s\n", message.String(msg))
+		if msg!=nil && msg.ID==message.MsgBitfield{
+			println("bitfield found")
+			break
+		}
+	}
+	break
 	}
 }

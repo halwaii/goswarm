@@ -29,7 +29,9 @@ const (
 )
 
 // a message stores id and payload
-// 4-byte length | ID | payload
+// -------------------------------
+// | 4-byte length | ID | payload |
+// -------------------------------
 type Message struct {
 	ID      messageID
 	Payload []byte
