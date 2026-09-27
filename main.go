@@ -25,12 +25,14 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"time"
 
+	"github.com/halwaii/goswarm/bitfield"
 	"github.com/halwaii/goswarm/handshake"
 	"github.com/halwaii/goswarm/message"
 	"github.com/halwaii/goswarm/torrent"
@@ -125,17 +127,32 @@ func main() {
 		conn.SetDeadline(time.Now().Add(10*time.Second))
 		fmt.Println("waiting for message from peer")
 		for {
-		msg, err := message.ReadMessage(conn)
-		if err!=nil{
-			fmt.Printf("failed to read message : %v\n", err)
-			break
+			msg, err := message.ReadMessage(conn)
+		
+			if err!=nil{
+				fmt.Printf("failed to read message : %v\n", err)
+				break
+			}
+			fmt.Printf("received : %s\n", message.String(msg))
+
+			if msg!=nil{
+				if msg.ID == message.MsgBitfield{
+
+					fmt.Println("bitfield found")
+					// convert payload into bitfield
+					bf := bitfield.Bitfield(msg.Payload)
+
+					// check if peer has  piece 0
+					hasPiece0 := bitfield.HasPiece(&bf, 0)
+					fmt.Printf("does peer have piece 0? : %v\n", hasPiece0)
+
+					break
+				} else if msg.ID == message.MsgHave{
+					pieceIdx := int(binary.BigEndian.Uint32(msg.Payload))
+					fmt.Printf("peer has piece : %d\n", pieceIdx)
+				}
+			}
 		}
-		fmt.Printf("received : %s\n", message.String(msg))
-		if msg!=nil && msg.ID==message.MsgBitfield{
-			println("bitfield found")
-			break
-		}
-	}
-	break
+		
 	}
 }
