@@ -6,14 +6,14 @@ type Bitfield []byte
 // 1 byte = 8 pieces
 
 // checks if the peer has that particular piece
-func HasPiece(bf *Bitfield, idx int) bool{
+func (bf Bitfield) HasPiece( idx int) bool{
 
 	// finding piece exact position
 	byteIdx := idx/8
 	offset := idx%8
 
 	// edge case if piece is outside bitfield
-	if byteIdx>= len(*bf){
+	if byteIdx>= len(bf){
 		return false
 	}
 
@@ -21,18 +21,18 @@ func HasPiece(bf *Bitfield, idx int) bool{
 	// bits :  piece 0
 	// but in Go : 7 6 5 4 3 2 1 0
 	// so we do 7 - offset
-	return (*bf)[byteIdx] & (1<<(7-offset)) != 0
+	return (bf)[byteIdx] & (1<<(7-offset)) != 0
 }
 
 // set piece marks a piece available
-func SetPiece(bf *Bitfield, idx int){
+func (bf Bitfield) SetPiece( idx int){
 
 	byteIdx := idx/8
 	offset := idx%8
 
-	if byteIdx>=len(*bf){
+	if byteIdx>=len(bf){
 		return
 	}
 
-	(*bf)[byteIdx] |= (1<<(7-offset))
+	(bf)[byteIdx] |= (1<<(7-offset))
 }
