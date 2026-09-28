@@ -91,7 +91,7 @@ func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
 	// 5) wait for bitfield and other messages
 	conn.SetDeadline(time.Now().Add(15*time.Second))
 
-	for state.PeerChoking{
+	for state.PeerChoking || len(state.Bitfield) == 0{
 		msg, err := message.ReadMessage(conn)
 		if err!=nil{
 			return fmt.Errorf("failed to read message : %v\n", err)
@@ -131,6 +131,7 @@ func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
 		case message.MsgUnchoke:
 			state.PeerChoking=false
 			fmt.Println("peer unchoked us")
+			fmt.Printf("bitfield : %v\n", state.Bitfield)
 		}
 	}
 
