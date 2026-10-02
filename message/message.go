@@ -96,6 +96,18 @@ func ParsePiece(idx int,buf []byte, msg *Message) (int, error){
 	copy(buf[begin:], data)
 	return len(data), nil
 }
+
+// parse a have message
+func ParseHave(msg *Message) (int, error){
+	if msg.ID!=MsgHave{
+		return 0, fmt.Errorf("Expected HAVE (ID %d), got ID %d", MsgHave, msg.ID)
+	}
+	if len(msg.Payload) != 4 {
+		return 0, fmt.Errorf("Expected payload length 4, got length %d", len(msg.Payload))
+	}
+	idx := int(binary.BigEndian.Uint32(msg.Payload))
+	return idx,nil
+}
 // serialize => message struct -> byte[]
 func Serialize(m *Message) []byte {
 

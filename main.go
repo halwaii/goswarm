@@ -93,7 +93,6 @@ func main() {
 			fmt.Printf("peer failed : %v\n", err)
 			continue
 		}
-		fmt.Println("peer communication successful")
 		break
 	}
 }
