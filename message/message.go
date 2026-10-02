@@ -37,6 +37,65 @@ type Message struct {
 	Payload []byte
 }
 
+// request message
+// request payload : piece index (4 bytes) | offset (4 bytes) | length (4 bytes)
+func MakeRequest(idx, offset, length uint32) *Message{
+	payload := make([]byte, 12)
+
+	binary.BigEndian.PutUint32(payload[0:4], idx)
+	binary.BigEndian.PutUint32(payload[4:8], offset)
+	binary.BigEndian.PutUint32(payload[8:12], length)
+
+	return &Message{
+		ID: MsgRequest,
+		Payload: payload,
+	}
+}
+
+// MakeHave creates HAVE message
+func MakeHave(idx int) *Message{
+	// payload => piece index | offset | length
+	payload := make([]byte, 4)
+	binary.BigEndian.PutUint32(payload, uint32(idx))
+
+	return &Message{
+		ID: MsgHave,
+		Payload: payload,
+	}
+}
+
+// parsepiece parses a piece message and copies block data into buf
+func ParsePiece(idx int,buf []byte, msg *Message) (int, error){
+	if msg.ID != MsgPiece{
+		return 0, fmt.Errorf("expected PIECE (ID %d), got ID %d", MsgPiece, msg.ID)
+	}
+
+	// piece index 4 bytes + offset 4 bytes
+	if len(msg.Payload)< 8{
+		return 0, fmt.Errorf("payload too short : %d < 8", len(msg.Payload))
+	}
+
+	parsedIdx := int(binary.BigEndian.Uint32(msg.Payload[0:4]))
+
+	if parsedIdx != idx{
+		return 0, fmt.Errorf("expected index : %d, got %d", idx, parsedIdx)
+	}
+
+	begin := int(binary.BigEndian.Uint32(msg.Payload[4:8]))
+
+	data := msg.Payload[8:]
+
+	if begin>len(buf){
+		return 0, fmt.Errorf("begin offset too high")
+	}
+
+	if begin + len(data)> len(buf){
+		return 0, fmt.Errorf("Data too long [%d] for offset %d with length %d", len(data), begin, len(buf))
+	}
+
+	copy(buf[begin:], data)
+	return len(data), nil
+}
 // serialize => message struct -> byte[]
 func Serialize(m *Message) []byte {
 

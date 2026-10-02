@@ -30,20 +30,6 @@ type PeerState struct { // initially
 // tcp connection -> bitTorrent handshake -> send Interested -> 
 // receive bitfield -> wait for UnChoke -> send Reqeuest -> recieve piece
 
-// request message
-// request payload : piece index (4 bytes) | offset (4 bytes) | length (4 bytes)
-func NewRequestMessage(idx, offset, length uint32) *message.Message{
-	payload := make([]byte, 12)
-
-	binary.BigEndian.PutUint32(payload[0:4], idx)
-	binary.BigEndian.PutUint32(payload[4:8], offset)
-	binary.BigEndian.PutUint32(payload[8:12], length)
-
-	return &message.Message{
-		ID: message.MsgRequest,
-		Payload: payload,
-	}
-}
 
 // connects to peer -> performs handshake , exchanges messages and request pieces
 func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
@@ -150,7 +136,7 @@ func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
 
 	// send request
 	const blockSize = 16*1024
-	req := NewRequestMessage(uint32(pieceIdx),0, blockSize)
+	req := message.MakeRequest(uint32(pieceIdx),0, blockSize)
 	
 	_,err = conn.Write(message.Serialize(req))
 	if err!=nil{
