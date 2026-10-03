@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"crypto/sha1"
 	"fmt"
 
 	"github.com/halwaii/goswarm/client"
@@ -64,4 +65,11 @@ func DownloadPiece(c *client.Client, pieceIdx int, pieceLength int)([]byte, erro
 	fmt.Printf("\npiece %d downloaded successfully (%d bytes)\n", pieceIdx, len(pieceBuf))
 
 	return pieceBuf, nil
+}
+
+// to verify piece with our own hash
+func VerifyPiece(piece []byte, expectedHash [20]byte) bool{
+	actualHash := sha1.Sum(piece)
+
+	return actualHash == expectedHash
 }

@@ -119,9 +119,15 @@ func main() {
 		fmt.Printf("failed to download piece: %v\n", err)
 		continue
 	}
-	fmt.Printf("success : piece %d downloaded, %d bytes\n", pieceIdx, len(piece))
 
+	// to verify downloaded piece
+	expectedHash := t.PieceHashes[pieceIdx]
+
+	if p2p.VerifyPiece(piece, expectedHash){
+		fmt.Printf("piece %d verified\n", pieceIdx)
+	} else {
+		fmt.Printf("piece %d verification failed\n", pieceIdx)
+	}
 	break
 	}
-
 }
