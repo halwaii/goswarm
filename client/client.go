@@ -96,38 +96,17 @@ func (c *Client) HasPiece(idx int) bool{
 	}
 	return c.Bitfield.HasPiece(idx)
 }
-// overall flow ****
-// tcp connection -> bitTorrent handshake -> send Interested -> 
-// receive bitfield -> wait for UnChoke -> send Reqeuest -> recieve piece
 
-
-// connects to peer -> performs handshake , exchanges messages and request pieces
-func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
-
-	// 1) tcp connection
-	c, err := New(peer, peerID, infoHash)
-
-	if err!=nil{
-		return fmt.Errorf("failed tcp connection : %w", err)
-	}
-	defer c.Conn.Close()
-
-	// send INTERESTED
-	err = c.SendInterested()
-	if err!=nil{
-		return fmt.Errorf("failed to send interested : %w", err)
-	}
-	fmt.Println("interested message sent")
-
-	// wait until peer is unchoked or peer has atleast one piece
-	var pieceIdx = -1
+func (c *Client) WaitforPiece()(int, error){
 	c.Conn.SetDeadline(time.Now().Add(15*time.Second))
+
+	pieceIdx := -1
 
 	for c.choked || pieceIdx==-1{
 
 		msg, err := c.Read()
 		if err!=nil{
-			return fmt.Errorf("failed to read message : %v\n", err)
+			return -1,fmt.Errorf("failed to read message : %v\n", err)
 		}
 		if msg == nil{
 			fmt.Println("received keep alive")
@@ -176,46 +155,20 @@ func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
 
 	// find piece whenever we receive piece avaliability
 	if pieceIdx==-1{
-		return fmt.Errorf("peer does not have available pieces")
-	}
-	const blocksize = 16*1024
-	err = c.SendRequest(pieceIdx, 0, blocksize)
-	if err!=nil{
-		return fmt.Errorf("failed to send request : %w",err)
+		return -1, fmt.Errorf("peer does not have available pieces")
 	}
 
-	fmt.Printf("requested piece %d , offset 0, lenght %d\n", pieceIdx,blocksize)
+	return pieceIdx, nil
+}
+// overall flow ****
+// tcp connection -> bitTorrent handshake -> send Interested -> 
+// receive bitfield -> wait for UnChoke -> send Reqeuest -> recieve piece
 
-	// wait for piece
-	for{
-		msg, err := c.Read()
-		if err!=nil{
-			return fmt.Errorf("failed to read piece : %v", err)
-		}
-		if msg==nil{
-			continue
-		}
 
-		if msg.ID!= message.MsgPiece{
-			fmt.Println("received : ", message.String(msg))
-			continue
-		}
+// connects to peer -> performs handshake , exchanges messages and request pieces
+func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
 
-		// buffer for one full piece
-		pieceBuf := make([]byte, blocksize)
-
-		n, err := message.ParsePiece(pieceIdx, pieceBuf, msg)
-		if err!=nil{
-			return fmt.Errorf("failed to parse piece : %w", err)
-		}
-		fmt.Println("PIECE received!")
-		fmt.Printf("piece index: %d\n", pieceIdx)
-		fmt.Printf("block offset: 0\n")
-		fmt.Printf("block size: %d bytes\n", n)
-
-		break
-	}
-	fmt.Println("peer communication done.")
+	
 	return nil
 }
 

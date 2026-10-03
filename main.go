@@ -30,6 +30,7 @@ import (
 	"os"
 
 	"github.com/halwaii/goswarm/client"
+	"github.com/halwaii/goswarm/p2p"
 	"github.com/halwaii/goswarm/torrent"
 	"github.com/halwaii/goswarm/tracker"
 )
@@ -87,12 +88,40 @@ func main() {
 	for i, peer := range trackerResp.Peers{
 		fmt.Printf("\n peer %d \n", i+1)
 
-		err := client.ConnectToPeer(peer, t.InfoHash, peerID)
+		// 1) tcp connection
+	c, err := client.New(peer, peerID, t.InfoHash)
 
-		if err!=nil{
-			fmt.Printf("peer failed : %v\n", err)
-			continue
-		}
-		break
+	if err!=nil{
+		fmt.Printf("failed tcp connection : %v", err)
+		continue
 	}
+	defer c.Conn.Close()
+
+	// send INTERESTED
+	err = c.SendInterested()
+	if err!=nil{
+		fmt.Printf("failed to send interested : %v", err)
+		continue
+	}
+	fmt.Println("interested message sent")
+
+	// wait for bitfield/have + unchoke
+	pieceIdx, err := c.WaitforPiece()
+	if err !=nil{
+		fmt.Printf("failed to get piece %v", err)
+		continue
+	}
+	fmt.Printf("downloading piece %d\n", pieceIdx)
+
+	// download complete piece
+	piece, err := p2p.DownloadPiece(c, pieceIdx, int(t.PieceLength))
+	if err!=nil{
+		fmt.Printf("failed to download piece: %v\n", err)
+		continue
+	}
+	fmt.Printf("success : piece %d downloaded, %d bytes\n", pieceIdx, len(piece))
+
+	break
+	}
+
 }
