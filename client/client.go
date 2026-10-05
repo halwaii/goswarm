@@ -97,9 +97,15 @@ func (c *Client) HasPiece(idx int) bool{
 	return c.Bitfield.HasPiece(idx)
 }
 
-func (c *Client) WaitforPiece()(int, error){
-	c.Conn.SetDeadline(time.Now().Add(15*time.Second))
+// send unchoke message to peer
+func (c *Client) SendUnchoke() error{
+	msg := &message.Message{ID: message.MsgUnchoke}
+	_, err := c.Conn.Write(message.Serialize(msg))
+	return err
+}
 
+func (c *Client) WaitforPiece()(int, error){
+	c.Conn.SetDeadline(time.Now().Add(15 * time.Second))
 	pieceIdx := -1
 
 	for c.choked || pieceIdx==-1{
@@ -164,6 +170,9 @@ func (c *Client) WaitforPiece()(int, error){
 // tcp connection -> bitTorrent handshake -> send Interested -> 
 // receive bitfield -> wait for UnChoke -> send Reqeuest -> recieve piece
 
+func (c *Client) SetDeadline(t time.Time) error{
+	return c.Conn.SetDeadline(t)
+}
 
 // connects to peer -> performs handshake , exchanges messages and request pieces
 func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{

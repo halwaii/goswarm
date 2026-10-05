@@ -3,9 +3,11 @@ package p2p
 import (
 	"crypto/sha1"
 	"fmt"
+	"time"
 
 	"github.com/halwaii/goswarm/client"
 	"github.com/halwaii/goswarm/message"
+	"github.com/halwaii/goswarm/peers"
 )
 
 // downloadPiece()
@@ -16,6 +18,26 @@ import (
 
 const blockSize = 16384
 
+// torrent holds data required to download torrent from list of peers
+type Torrent struct{
+	Peers []peers.Peer
+	PeerID [20]byte
+	InfoHash [20]byte
+	PieceHashes [][20]byte
+	PieceLength int
+	Length int
+	Name string
+}
+type pieceWork struct{
+	idx int
+	hash [20]byte
+	length int
+}
+type pieceResult struct{
+	idx int
+	buf []byte
+}
+
 func DownloadPiece(c *client.Client, pieceIdx int, pieceLength int)([]byte, error){
 
 	// buffer for complete piece
@@ -23,6 +45,12 @@ func DownloadPiece(c *client.Client, pieceIdx int, pieceLength int)([]byte, erro
 
 	// downlaod piece block by block
 	for offset:=0 ; offset< pieceLength; offset+=blockSize{
+
+		// now every block will get deadline of 15 seconds
+		err := c.SetDeadline(time.Now().Add(15*time.Second))
+		if err!=nil{
+			return nil, fmt.Errorf("failed to set deadline %w",err)
+		}
 		// last block can be smaller
 		length := blockSize
 
@@ -32,7 +60,7 @@ func DownloadPiece(c *client.Client, pieceIdx int, pieceLength int)([]byte, erro
 		fmt.Printf("requesting piece %d, offset %d, length %d\n",pieceIdx, offset, length)
 
 		// send request to peer
-		err := c.SendRequest(pieceIdx, offset, length)
+		err = c.SendRequest(pieceIdx, offset, length)
 		if err!=nil{
 			return nil, fmt.Errorf("failed to request block %w",err)
 		}

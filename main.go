@@ -89,45 +89,90 @@ func main() {
 		fmt.Printf("\n peer %d \n", i+1)
 
 		// 1) tcp connection
-	c, err := client.New(peer, peerID, t.InfoHash)
+		c, err := client.New(peer, peerID, t.InfoHash)
 
-	if err!=nil{
-		fmt.Printf("failed tcp connection : %v", err)
-		continue
-	}
-	defer c.Conn.Close()
+		if err!=nil{
+			fmt.Printf("failed tcp connection : %v", err)
+			continue
+		}
+		defer c.Conn.Close()
 
-	// send INTERESTED
-	err = c.SendInterested()
-	if err!=nil{
-		fmt.Printf("failed to send interested : %v", err)
-		continue
-	}
-	fmt.Println("interested message sent")
+		// send INTERESTED
+		err = c.SendInterested()
+		if err!=nil{
+			fmt.Printf("failed to send interested : %v", err)
+			continue
+		}
+		fmt.Println("interested message sent")
 
-	// wait for bitfield/have + unchoke
-	pieceIdx, err := c.WaitforPiece()
-	if err !=nil{
-		fmt.Printf("failed to get piece %v", err)
-		continue
-	}
-	fmt.Printf("downloading piece %d\n", pieceIdx)
+		// initialize peer state
+		_, err = c.WaitforPiece()
+		if err !=nil{
+			fmt.Printf("failed to get piece %v", err)
+			continue
+		}
 
-	// download complete piece
-	piece, err := p2p.DownloadPiece(c, pieceIdx, int(t.PieceLength))
-	if err!=nil{
-		fmt.Printf("failed to download piece: %v\n", err)
-		continue
-	}
+		// create output file
+		file, err := os.OpenFile(t.Name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err!=nil{
+			fmt.Printf("failed to create file : %v\n", err)
+			continue
+		}
+		defer file.Close()
 
-	// to verify downloaded piece
-	expectedHash := t.PieceHashes[pieceIdx]
+		downloadComplete := true
+		// download every piece
+		for pieceIdx:=0; pieceIdx < len(t.PieceHashes); pieceIdx++{
+			fmt.Printf("\n====piece %d %d====\n", pieceIdx+1, len(t.PieceHashes))
 
-	if p2p.VerifyPiece(piece, expectedHash){
-		fmt.Printf("piece %d verified\n", pieceIdx)
-	} else {
-		fmt.Printf("piece %d verification failed\n", pieceIdx)
-	}
-	break
+			if !c.HasPiece(pieceIdx){
+				fmt.Printf("peer does not have piece %d\n",pieceIdx)
+				downloadComplete=false
+				break
+			}
+
+			pieceLength := int(t.PieceLength)
+
+			if pieceIdx == len(t.PieceHashes)-1{
+				rem := t.Length - int64(pieceIdx)*t.PieceLength
+
+				pieceLength = int(rem)
+			}
+
+			// download piece
+			piece, err := p2p.DownloadPiece(c, pieceIdx, pieceLength)
+			if err!=nil{
+				fmt.Printf("failed to download piece %d: %v\n", pieceIdx,err)
+				downloadComplete=false
+				break
+			}
+
+			// to verify downloaded piece
+			expectedHash := t.PieceHashes[pieceIdx]
+
+			if !p2p.VerifyPiece(piece, expectedHash){
+				fmt.Printf("piece %d verification failed\n", pieceIdx)
+				downloadComplete=false
+				break
+			} 
+			
+			fmt.Printf("piece %d verified\n",pieceIdx)
+
+			offset := int64(pieceIdx)*t.PieceLength
+
+			_,err = file.WriteAt(piece, offset)
+			if err !=nil{
+				fmt.Printf("failed to write piece %d : %v", pieceIdx, err)
+				downloadComplete=false
+				break
+			}
+
+			fmt.Printf("piece %d written at offset %d\n", pieceIdx, offset)
+		}
+		
+		if downloadComplete{
+			fmt.Printf("\ndownload complete %s (%d bytes)", t.Name, t.Length)
+		}
+		break
 	}
 }
