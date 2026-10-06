@@ -99,6 +99,10 @@ func ParseTrackerResponse(data []byte) (TrackerResponse, error){
 		return TrackerResponse{}, fmt.Errorf("invalid response")
 	}
 
+	if reason, ok := dict["failure reason"].(string); ok {
+    	return TrackerResponse{}, fmt.Errorf("tracker failure: %s", reason)
+	}
+
 	interval, check := dict["interval"].(int64)
 	if !check{
 		return TrackerResponse{}, fmt.Errorf("invalid interval")

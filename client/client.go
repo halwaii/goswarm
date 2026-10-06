@@ -95,6 +95,9 @@ func (c *Client) HasPiece(idx int) bool{
 	if c.AvailablePieces[idx]{
 		return true
 	}
+	if c.Bitfield==nil{
+		return false
+	}
 	return c.Bitfield.HasPiece(idx)
 }
 
@@ -132,69 +135,6 @@ func (c *Client) SetHave(payload []byte) error{
 	return nil
 }
 
-
-// func (c *Client) WaitforPiece()(int, error){
-// 	c.Conn.SetDeadline(time.Now().Add(15 * time.Second))
-// 	pieceIdx := -1
-
-// 	for c.choked || pieceIdx==-1{
-
-// 		msg, err := c.Read()
-// 		if err!=nil{
-// 			return -1,fmt.Errorf("failed to read message : %v\n", err)
-// 		}
-// 		if msg == nil{
-// 			fmt.Println("received keep alive")
-// 			continue
-// 		}
-// 		fmt.Println("received : ", message.String(msg))
-
-// 		switch msg.ID{
-// 		case message.MsgBitfield:
-// 			fmt.Println("bitfield received")
-
-// 			c.Bitfield = bitfield.Bitfield(msg.Payload)
-// 			for i:=0;i<len(c.Bitfield)*8;i++{
-// 				if c.Bitfield.HasPiece(i){
-// 					c.AvailablePieces[i]=true
-// 				}
-// 			}
-
-// 		// have
-// 		case message.MsgHave:
-// 			if len(msg.Payload)!=4{
-// 				fmt.Println("invalid HAVE message")
-// 				continue
-// 			}
-// 			idx := binary.BigEndian.Uint32(msg.Payload)
-// 			c.AvailablePieces[int(idx)]=true
-// 			fmt.Printf("peer has piece : %d\n", int(idx))
-
-// 		// choke
-// 		case message.MsgChoke:
-// 			c.choked=true
-// 			fmt.Println("peer is choking us")
-
-// 		// unchoke
-// 		case message.MsgUnchoke:
-// 			c.choked=false
-// 			fmt.Println("peer unchoked us")
-// 		}
-// 		if pieceIdx==-1{
-// 			for idx:=range c.AvailablePieces{
-// 				pieceIdx=idx
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	// find piece whenever we receive piece avaliability
-// 	if pieceIdx==-1{
-// 		return -1, fmt.Errorf("peer does not have available pieces")
-// 	}
-
-// 	return pieceIdx, nil
-// }
 // overall flow ****
 // tcp connection -> bitTorrent handshake -> send Interested -> 
 // receive bitfield -> wait for UnChoke -> send Reqeuest -> recieve piece
@@ -202,11 +142,3 @@ func (c *Client) SetHave(payload []byte) error{
 func (c *Client) SetDeadline(t time.Time) error{
 	return c.Conn.SetDeadline(t)
 }
-
-// connects to peer -> performs handshake , exchanges messages and request pieces
-func ConnectToPeer (peer peers.Peer, infoHash [20]byte, peerID [20]byte) error{
-
-	
-	return nil
-}
-
