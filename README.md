@@ -1,3 +1,5 @@
+
+
 # goswarm
 
 Tiny BitTorrent client written in Go, built from scratch.
@@ -25,6 +27,7 @@ go run . debian-amd64-netinst.iso.torrent debian.iso
 ```
 
 ## Demo
+<img width="1917" height="1020" alt="image" src="https://github.com/user-attachments/assets/278a1d51-9a33-4994-8ddb-6c8b68d95cb1" />
 
 
 
